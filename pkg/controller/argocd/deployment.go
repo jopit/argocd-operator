@@ -197,6 +197,18 @@ func getArgoRepoCommand(cr *argoprojv1a1.ArgoCD) []string {
 	return cmd
 }
 
+// getArgoCmpServerInitCommand will return the command for the ArgoCD CMP Server init container
+func getArgoCmpServerInitCommand(cr *argoprojv1a1.ArgoCD) []string {
+	cmd := make([]string, 0)
+
+	cmd = append(cmd, "cp")
+	cmd = append(cmd, "-n")
+	cmd = append(cmd, "/usr/local/bin/argocd")
+	cmd = append(cmd, "/var/run/argocd/argocd-cmp-server")
+
+	return cmd
+}
+
 // getArgoServerCommand will return the command for the ArgoCD server component.
 func getArgoServerCommand(cr *argoprojv1a1.ArgoCD) []string {
 	cmd := make([]string, 0)
@@ -823,6 +835,19 @@ func (r *ReconcileArgoCD) reconcileRepoDeployment(cr *argoprojv1a1.ArgoCD) error
 		},
 	}}
 
+	deploy.Spec.Template.Spec.InitContainers = []corev1.Container{{
+		Name:            "copyutil",
+		Image:           getArgoContainerImage(cr),
+		Command:         getArgoCmpServerInitCommand(cr),
+		ImagePullPolicy: corev1.PullAlways,
+		VolumeMounts: []corev1.VolumeMount{
+			{
+				Name:      "var-files",
+				MountPath: "/var/run/argocd",
+			},
+		},
+	}}
+
 	deploy.Spec.Template.Spec.Volumes = []corev1.Volume{
 		{
 			Name: "ssh-known-hosts",
@@ -867,6 +892,12 @@ func (r *ReconcileArgoCD) reconcileRepoDeployment(cr *argoprojv1a1.ArgoCD) error
 					SecretName: common.ArgoCDRepoServerTLSSecretName,
 					Optional:   boolPtr(true),
 				},
+			},
+		},
+		{
+			Name: "var-files",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
 			},
 		},
 	}

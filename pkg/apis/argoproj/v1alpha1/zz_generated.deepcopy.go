@@ -528,6 +528,13 @@ func (in *ArgoCDRepoSpec) DeepCopyInto(out *ArgoCDRepoSpec) {
 		*out = new(v1.ResourceRequirements)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.PluginContainers != nil {
+		in, out := &in.PluginContainers, &out.PluginContainers
+		*out = make([]v1.Container, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	return
 }
 

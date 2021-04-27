@@ -270,6 +270,9 @@ type ArgoCDRepoSpec struct {
 	// The value specified here can currently be:
 	// - openshift - Use the OpenShift service CA to request TLS config
 	AutoTLS string `json:"autotls,omitempty"`
+
+	// PluginContainers defines the sidecar containers for any user-defined version 2.0 Configuration Management Plugins
+	PluginContainers []corev1.Container `json:"pluginContainers,omitempty"`
 }
 
 // ArgoCDRouteSpec defines the desired state for an OpenShift Route.
