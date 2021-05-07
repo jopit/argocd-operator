@@ -82,6 +82,44 @@ func TestReconcileArgoCD_reconcileRepoDeployment_mounts(t *testing.T) {
 	if diff := cmp.Diff(repoServerDefaultVolumeMounts(), deployment.Spec.Template.Spec.Containers[0].VolumeMounts); diff != "" {
 		t.Fatalf("reconcileRepoDeployment failed:\n%s", diff)
 	}
+
+	mounts := []corev1.VolumeMount{
+		{Name: "var-files", MountPath: "/var/run/argocd"},
+	}
+	if diff := cmp.Diff(mounts, deployment.Spec.Template.Spec.InitContainers[0].VolumeMounts); diff != "" {
+		t.Fatalf("reconcileRepoDeployment failed:\n%s", diff)
+	}
+}
+
+func TestReconcileArgoCD_reconcileRepDeployment_with_resources(t *testing.T) {
+	restoreEnv(t)
+
+	logf.SetLogger(logf.ZapLogger(true))
+	a := makeTestArgoCDWithResources()
+	r := makeTestReconciler(t, a)
+
+	err := r.reconcileRepoDeployment(a)
+	assert.NilError(t, err)
+
+	deployment := &appsv1.Deployment{}
+	err = r.client.Get(context.TODO(), types.NamespacedName{
+		Name:      "argocd-repo-server",
+		Namespace: testNamespace,
+	}, deployment)
+	assert.NilError(t, err)
+
+	testResources := corev1.ResourceRequirements{
+		Requests: corev1.ResourceList{
+			corev1.ResourceMemory: resourcev1.MustParse("100Mi"),
+			corev1.ResourceCPU:    resourcev1.MustParse("200m"),
+		},
+		Limits: corev1.ResourceList{
+			corev1.ResourceMemory: resourcev1.MustParse("200Mi"),
+			corev1.ResourceCPU:    resourcev1.MustParse("400m"),
+		},
+	}
+	assert.DeepEqual(t, deployment.Spec.Template.Spec.Containers[0].Resources, testResources)
+	assert.DeepEqual(t, deployment.Spec.Template.Spec.InitContainers[0].Resources, testResources)
 }
 
 func TestReconcileArgoCD_reconcileDexDeployment_with_dex_disabled(t *testing.T) {
@@ -285,6 +323,12 @@ func TestReconcileArgoCD_reconcileRepoDeployment_updatesVolumeMounts(t *testing.
 							Image:   "test-image",
 						},
 					},
+					InitContainers: []corev1.Container{
+						{
+							Command: []string{"testing-init"},
+							Image:   "test-image-init",
+						},
+					},
 				},
 			},
 		},
@@ -301,12 +345,16 @@ func TestReconcileArgoCD_reconcileRepoDeployment_updatesVolumeMounts(t *testing.
 	}, deployment)
 	assert.NilError(t, err)
 
-	if l := len(deployment.Spec.Template.Spec.Volumes); l != 5 {
-		t.Fatalf("reconcileRepoDeployment volumes, got %d, want 5", l)
+	if l := len(deployment.Spec.Template.Spec.Volumes); l != 6 {
+		t.Fatalf("reconcileRepoDeployment volumes, got %d, want 6", l)
 	}
 
 	if l := len(deployment.Spec.Template.Spec.Containers[0].VolumeMounts); l != 5 {
 		t.Fatalf("reconcileRepoDeployment mounts, got %d, want 5", l)
+	}
+
+	if l := len(deployment.Spec.Template.Spec.InitContainers[0].VolumeMounts); l != 1 {
+		t.Fatalf("reconcileRepoDeployment init container mounts, got %d, want 1", l)
 	}
 }
 
@@ -880,6 +928,12 @@ func repoServerDefaultVolumes() []corev1.Volume {
 					SecretName: common.ArgoCDRepoServerTLSSecretName,
 					Optional:   boolPtr(true),
 				},
+			},
+		},
+		{
+			Name: "var-files",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
 			},
 		},
 	}

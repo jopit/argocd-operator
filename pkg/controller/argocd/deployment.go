@@ -840,7 +840,8 @@ func (r *ReconcileArgoCD) reconcileRepoDeployment(cr *argoprojv1a1.ArgoCD) error
 		Image:           getArgoContainerImage(cr),
 		Command:         getArgoCmpServerInitCommand(cr),
 		ImagePullPolicy: corev1.PullAlways,
-		Resources: getArgoRepoResources(cr),
+		Resources:       getArgoRepoResources(cr),
+		Env:             proxyEnvVars(),
 		VolumeMounts: []corev1.VolumeMount{
 			{
 				Name:      "var-files",
@@ -922,9 +923,19 @@ func (r *ReconcileArgoCD) reconcileRepoDeployment(cr *argoprojv1a1.ArgoCD) error
 			existing.Spec.Template.Spec.Containers[0].VolumeMounts = deploy.Spec.Template.Spec.Containers[0].VolumeMounts
 			changed = true
 		}
+		if !reflect.DeepEqual(deploy.Spec.Template.Spec.InitContainers[0].VolumeMounts,
+			existing.Spec.Template.Spec.InitContainers[0].VolumeMounts) {
+			existing.Spec.Template.Spec.InitContainers[0].VolumeMounts = deploy.Spec.Template.Spec.InitContainers[0].VolumeMounts
+			changed = true
+		}
 		if !reflect.DeepEqual(deploy.Spec.Template.Spec.Containers[0].Env,
 			existing.Spec.Template.Spec.Containers[0].Env) {
 			existing.Spec.Template.Spec.Containers[0].Env = deploy.Spec.Template.Spec.Containers[0].Env
+			changed = true
+		}
+		if !reflect.DeepEqual(deploy.Spec.Template.Spec.InitContainers[0].Env,
+			existing.Spec.Template.Spec.InitContainers[0].Env) {
+			existing.Spec.Template.Spec.InitContainers[0].Env = deploy.Spec.Template.Spec.InitContainers[0].Env
 			changed = true
 		}
 

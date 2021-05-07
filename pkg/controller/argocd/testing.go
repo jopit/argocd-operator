@@ -109,6 +109,9 @@ func makeTestArgoCDWithResources(opts ...argoCDOpt) *argoprojv1alpha1.ArgoCD {
 			Controller: argoprojv1alpha1.ArgoCDApplicationControllerSpec{
 				Resources: makeTestControllerResources(),
 			},
+			Repo: argoprojv1alpha1.ArgoCDRepoSpec{
+				Resources: makeTestGenericResources(),
+			},
 		},
 	}
 	for _, o := range opts {
@@ -261,4 +264,17 @@ func createNamespace(r *ReconcileArgoCD, n string, managedBy string) error {
 	}
 
 	return r.client.Create(context.TODO(), ns)
+}
+
+func makeTestGenericResources() *corev1.ResourceRequirements {
+	return &corev1.ResourceRequirements{
+		Requests: corev1.ResourceList{
+			corev1.ResourceMemory: resourcev1.MustParse("100Mi"),
+			corev1.ResourceCPU:    resourcev1.MustParse("200m"),
+		},
+		Limits: corev1.ResourceList{
+			corev1.ResourceMemory: resourcev1.MustParse("200Mi"),
+			corev1.ResourceCPU:    resourcev1.MustParse("400m"),
+		},
+	}
 }
