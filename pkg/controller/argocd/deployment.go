@@ -835,6 +835,8 @@ func (r *ReconcileArgoCD) reconcileRepoDeployment(cr *argoprojv1a1.ArgoCD) error
 		},
 	}}
 
+	deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, cr.Spec.Repo.PluginContainers...)
+
 	deploy.Spec.Template.Spec.InitContainers = []corev1.Container{{
 		Name:            "copyutil",
 		Image:           getArgoContainerImage(cr),
@@ -936,6 +938,12 @@ func (r *ReconcileArgoCD) reconcileRepoDeployment(cr *argoprojv1a1.ArgoCD) error
 		if !reflect.DeepEqual(deploy.Spec.Template.Spec.InitContainers[0].Env,
 			existing.Spec.Template.Spec.InitContainers[0].Env) {
 			existing.Spec.Template.Spec.InitContainers[0].Env = deploy.Spec.Template.Spec.InitContainers[0].Env
+			changed = true
+		}
+		if !reflect.DeepEqual(deploy.Spec.Template.Spec.Containers[1:],
+			existing.Spec.Template.Spec.Containers[1:]) {
+			existing.Spec.Template.Spec.Containers = append(existing.Spec.Template.Spec.Containers[0:1],
+				deploy.Spec.Template.Spec.Containers[1:]...)
 			changed = true
 		}
 

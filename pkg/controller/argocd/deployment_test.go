@@ -122,6 +122,94 @@ func TestReconcileArgoCD_reconcileRepDeployment_with_resources(t *testing.T) {
 	assert.DeepEqual(t, deployment.Spec.Template.Spec.InitContainers[0].Resources, testResources)
 }
 
+func TestReconcileArgoCD_reconcileRepDeployment_with_PluginContainers(t *testing.T) {
+	restoreEnv(t)
+
+	logf.SetLogger(logf.ZapLogger(true))
+	a := makeTestArgoCD(func(cd *argoprojv1alpha1.ArgoCD) {
+		cd.Spec.Repo.PluginContainers = []corev1.Container{{
+			Name: "cdk8s",
+			Command: []string{
+				"/var/run/argocd/argocd-cmp-server",
+			},
+			Image: "docker.ui/cdk8s/cdk8s:latest",
+			VolumeMounts: []corev1.VolumeMount{
+				{Name: "var-files", MountPath: "/var/run/argocd"},
+			},
+		}}
+	})
+	r := makeTestReconciler(t, a)
+
+	err := r.reconcileRepoDeployment(a)
+	assert.NilError(t, err)
+
+	deployment := &appsv1.Deployment{}
+	err = r.client.Get(context.TODO(), types.NamespacedName{
+		Name:      "argocd-repo-server",
+		Namespace: testNamespace,
+	}, deployment)
+	assert.NilError(t, err)
+
+	pluginContainer := corev1.Container{
+		Name: "cdk8s",
+		Command: []string{
+			"/var/run/argocd/argocd-cmp-server",
+		},
+		Image: "docker.ui/cdk8s/cdk8s:latest",
+		VolumeMounts: []corev1.VolumeMount{
+			{Name: "var-files", MountPath: "/var/run/argocd"},
+		},
+	}
+
+	assert.DeepEqual(t, deployment.Spec.Template.Spec.Containers[1], pluginContainer)
+}
+
+func TestReconcileArgoCD_reconcileRepDeployment_with_PluginContainers_with_update(t *testing.T) {
+	restoreEnv(t)
+
+	logf.SetLogger(logf.ZapLogger(true))
+	a := makeTestArgoCD(func(cd *argoprojv1alpha1.ArgoCD) {
+		cd.Spec.Repo.PluginContainers = []corev1.Container{{
+			Name: "cdk8s",
+			Command: []string{
+				"/var/run/argocd/argocd-cmp-server",
+			},
+			Image: "docker.ui/cdk8s/cdk8s:latest",
+			VolumeMounts: []corev1.VolumeMount{
+				{Name: "var-files", MountPath: "/var/run/argocd"},
+			},
+		}}
+	})
+	r := makeTestReconciler(t, a)
+	err := r.reconcileRepoDeployment(a)
+	assert.NilError(t, err)
+
+	a.Spec.Repo.PluginContainers[0].Name = "newname"
+	a.Spec.Repo.PluginContainers[0].Image = "newimage:latest"
+	assert.NilError(t, r.reconcileRepoDeployment(a))
+
+	deployment := &appsv1.Deployment{}
+	err = r.client.Get(context.TODO(), types.NamespacedName{
+		Name:      "argocd-repo-server",
+		Namespace: testNamespace,
+	}, deployment)
+	assert.NilError(t, err)
+
+	pluginContainer := corev1.Container{
+		Name: "newname",
+		Command: []string{
+			"/var/run/argocd/argocd-cmp-server",
+		},
+		Image: "newimage:latest",
+		VolumeMounts: []corev1.VolumeMount{
+			{Name: "var-files", MountPath: "/var/run/argocd"},
+		},
+	}
+
+	assert.Equal(t, len(deployment.Spec.Template.Spec.Containers), 2)
+	assert.DeepEqual(t, deployment.Spec.Template.Spec.Containers[1], pluginContainer)
+}
+
 func TestReconcileArgoCD_reconcileDexDeployment_with_dex_disabled(t *testing.T) {
 	restoreEnv(t)
 	logf.SetLogger(logf.ZapLogger(true))
