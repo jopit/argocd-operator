@@ -832,6 +832,10 @@ func (r *ReconcileArgoCD) reconcileRepoDeployment(cr *argoprojv1a1.ArgoCD) error
 				Name:      "argocd-repo-server-tls",
 				MountPath: "/app/config/reposerver/tls",
 			},
+			{
+				Name:      "var-files",
+				MountPath: "/var/run/argocd",
+			},
 		},
 	}}
 

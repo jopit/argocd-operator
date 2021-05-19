@@ -34,6 +34,30 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
+func applicationSetDefaultVolumeMounts() []corev1.VolumeMount {
+	mounts := repoServerDefaultVolumeMounts()
+	pos := 0
+	for i, mount := range mounts {
+		if mount.Name == "var-files" {
+			pos = i
+			break
+		}
+	}
+	return append(mounts[:pos], mounts[pos+1:]...)
+}
+
+func applicationSetDefaultVolumes() []corev1.Volume {
+	volumes := repoServerDefaultVolumes()
+	pos := 0
+	for i, volume := range volumes {
+		if volume.Name == "var-files" {
+			pos = i
+			break
+		}
+	}
+	return append(volumes[:pos], volumes[pos+1:]...)
+}
+
 func TestReconcileApplicationSet_Deployments(t *testing.T) {
 	logf.SetLogger(logf.ZapLogger(true))
 	a := makeTestArgoCD()
@@ -70,7 +94,7 @@ func TestReconcileApplicationSet_Deployments(t *testing.T) {
 		Image:           argoutil.CombineImageTag(common.ArgoCDDefaultApplicationSetImage, common.ArgoCDDefaultApplicationSetVersion),
 		ImagePullPolicy: corev1.PullAlways,
 		Name:            "argocd-applicationset-controller",
-		VolumeMounts:    repoServerDefaultVolumeMounts(),
+		VolumeMounts:    applicationSetDefaultVolumeMounts(),
 	}}
 
 	if diff := cmp.Diff(want, deployment.Spec.Template.Spec.Containers); diff != "" {
@@ -123,14 +147,14 @@ func TestReconcileApplicationSet_Deployments_resourceRequirements(t *testing.T) 
 				corev1.ResourceCPU:    resourcev1.MustParse("2000m"),
 			},
 		},
-		VolumeMounts: repoServerDefaultVolumeMounts(),
+		VolumeMounts: applicationSetDefaultVolumeMounts(),
 	}}
 
 	if diff := cmp.Diff(containerWant, deployment.Spec.Template.Spec.Containers); diff != "" {
 		t.Fatalf("failed to reconcile argocd-server deployment:\n%s", diff)
 	}
 
-	volumesWant := repoServerDefaultVolumes()
+	volumesWant := applicationSetDefaultVolumes()
 
 	if diff := cmp.Diff(volumesWant, deployment.Spec.Template.Spec.Volumes); diff != "" {
 		t.Fatalf("failed to reconcile argocd-server deployment:\n%s", diff)

@@ -437,8 +437,8 @@ func TestReconcileArgoCD_reconcileRepoDeployment_updatesVolumeMounts(t *testing.
 		t.Fatalf("reconcileRepoDeployment volumes, got %d, want 6", l)
 	}
 
-	if l := len(deployment.Spec.Template.Spec.Containers[0].VolumeMounts); l != 5 {
-		t.Fatalf("reconcileRepoDeployment mounts, got %d, want 5", l)
+	if l := len(deployment.Spec.Template.Spec.Containers[0].VolumeMounts); l != 6 {
+		t.Fatalf("reconcileRepoDeployment mounts, got %d, want 6", l)
 	}
 
 	if l := len(deployment.Spec.Template.Spec.InitContainers[0].VolumeMounts); l != 1 {
@@ -1036,6 +1036,7 @@ func repoServerDefaultVolumeMounts() []corev1.VolumeMount {
 		{Name: "gpg-keys", MountPath: "/app/config/gpg/source"},
 		{Name: "gpg-keyring", MountPath: "/app/config/gpg/keys"},
 		{Name: "argocd-repo-server-tls", MountPath: "/app/config/reposerver/tls"},
+		{Name: "var-files", MountPath: "/var/run/argocd"},
 	}
 	return mounts
 }
