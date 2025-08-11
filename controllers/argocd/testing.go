@@ -56,6 +56,9 @@ func makeTestReconciler(client client.Client, sch *runtime.Scheme) *ReconcileArg
 	return &ReconcileArgoCD{
 		Client: client,
 		Scheme: sch,
+		LocalUsers: &LocalUsersInfo{
+			TokenRenewalTimers: map[string]*TokenRenewalTimer{},
+		},
 	}
 }
 

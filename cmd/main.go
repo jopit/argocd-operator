@@ -246,6 +246,9 @@ func main() {
 		Client:        mgr.GetClient(),
 		Scheme:        mgr.GetScheme(),
 		LabelSelector: labelSelectorFlag,
+		LocalUsers: &argocd.LocalUsersInfo{
+			TokenRenewalTimers: map[string]*argocd.TokenRenewalTimer{},
+		},
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ArgoCD")
 		os.Exit(1)
