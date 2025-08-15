@@ -48,8 +48,8 @@ func (l *lock) protect(code func()) {
 }
 
 type TokenRenewalTimer struct {
-	timer *time.Timer
-	stop  bool
+	timer   *time.Timer
+	stopped bool
 }
 
 type LocalUsersInfo struct {
